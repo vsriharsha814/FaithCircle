@@ -58,7 +58,7 @@ This app brings together **Bible journaling**, **sermon notes**, **verse memoriz
 - **React Native (Expo)**
 - **React Navigation**
 - **TypeScript**
-- **Firebase or Supabase backend**
+- **Firebase backend** (Authentication + Firestore)
 - **AsyncStorage** for caching
 - **react-native-calendars** for calendar view
 
