@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth';
 
 // Auth Screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
-import { RegisterScreen } from '../screens/auth/RegisterScreen';
 
 // Tab Screens
 import { JournalTab } from '../screens/journal/JournalTab';
@@ -81,7 +80,6 @@ export function AppNavigator() {
       ) : (
         <AuthStack.Navigator screenOptions={{ headerShown: false }}>
           <AuthStack.Screen name="Login" component={LoginScreen} />
-          <AuthStack.Screen name="Register" component={RegisterScreen} />
         </AuthStack.Navigator>
       )}
     </>

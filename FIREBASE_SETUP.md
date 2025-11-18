@@ -2,19 +2,21 @@
 
 ## Step 1: Create Firebase Project
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
+<!-- 1. Go to [Firebase Console](https://console.firebase.google.com)
 2. Click "Add project" or select an existing project
-3. Follow the setup wizard
+3. Follow the setup wizard -->
 
 ## Step 2: Enable Authentication
 
 1. In your Firebase project, go to **Authentication**
 2. Click **Get Started** (if first time)
 3. Go to **Sign-in method** tab
-4. Enable **Email/Password** provider
-   - Click on Email/Password
+4. Enable **Google** provider
+   - Click on "Google"
    - Toggle "Enable"
+   - Enter your project support email (or use the default)
    - Click "Save"
+   - **Important**: Copy the **Web client ID** shown in the configuration - you'll need this!
 
 ## Step 3: Create Firestore Database
 
@@ -36,25 +38,30 @@
 
 ## Step 5: Configure Your App
 
-1. Open `src/utils/firebase.ts`
-2. Replace the `firebaseConfig` object with your Firebase config:
+1. **Set up Firebase config:**
+   - Open `src/utils/firebase.ts`
+   - Replace the `firebaseConfig` object with your Firebase config from Step 4
 
-```typescript
-const firebaseConfig = {
-  apiKey: "AIza...", // Your API key
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123..."
-};
-```
+2. **Set up Google OAuth Client ID:**
+   - Create a `.env` file in the root directory (or use `app.json` extra config)
+   - Add your Google Web Client ID (from Step 2):
+     ```
+     EXPO_PUBLIC_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+     ```
+   - **Note**: The Google Web Client ID is shown when you enable Google Sign-In in Firebase Console
+
+3. **Alternative (if .env doesn't work):**
+   - You can hardcode the Google Client ID temporarily in `src/hooks/useAuth.ts`:
+     ```typescript
+     clientId: "your-google-web-client-id.apps.googleusercontent.com"
+     ```
 
 ## Step 6: Test Authentication
 
 1. Start your app: `npm start`
-2. Try registering a new account
-3. Check Firebase Console > Authentication > Users to see the new user
+2. Click "Continue with Google"
+3. Sign in with your Google account
+4. Check Firebase Console > Authentication > Users to see your new user
 
 ## Firestore Security Rules (Later)
 

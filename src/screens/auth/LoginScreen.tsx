@@ -1,102 +1,71 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ScreenContainer } from '../../components/shared/ScreenContainer';
-import { TextInputField } from '../../components/shared/TextInputField';
 import { PrimaryButton } from '../../components/shared/PrimaryButton';
-import { SecondaryButton } from '../../components/shared/SecondaryButton';
 import { ErrorMessage } from '../../components/shared/ErrorMessage';
 import { useAuth } from '../../hooks/useAuth';
 import { theme } from '../../constants/theme';
-import { useNavigation } from '@react-navigation/native';
 
 export function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const navigation = useNavigation();
+  const { signInWithGoogle } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
 
     try {
-      await login(email, password);
+      await signInWithGoogle();
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScreenContainer scrollable style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Faith Circle</Text>
-          <Text style={styles.subtitle}>Welcome back</Text>
-        </View>
+    <ScreenContainer scrollable style={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Faith Circle</Text>
+        <Text style={styles.subtitle}>Sign in to continue</Text>
+      </View>
 
-        <View style={styles.form}>
-          {error ? <ErrorMessage message={error} /> : null}
+      <View style={styles.form}>
+        {error ? <ErrorMessage message={error} /> : null}
 
-          <TextInputField
-            label="Email"
-            placeholder="your@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-
-          <TextInputField
-            label="Password"
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
-
-          <PrimaryButton
-            title="Sign In"
-            onPress={handleLogin}
-            loading={loading}
-          />
-
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don't have an account? </Text>
-            <SecondaryButton
-              title="Sign Up"
-              onPress={() => navigation.navigate('Register' as never)}
-            />
+        <TouchableOpacity
+          style={[styles.googleButton, loading && styles.googleButtonDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+          activeOpacity={0.7}
+        >
+          <View style={styles.googleIconContainer}>
+            <Text style={styles.googleIconText}>G</Text>
           </View>
+          <Text style={styles.googleButtonText}>
+            {loading ? 'Signing in...' : 'Continue with Google'}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            By signing in, you agree to our terms of service and privacy policy
+          </Text>
         </View>
-      </ScreenContainer>
-    </KeyboardAvoidingView>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     justifyContent: 'center',
+    paddingHorizontal: theme.spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.xxl,
   },
   title: {
     ...theme.typography.h1,
@@ -106,19 +75,54 @@ const styles = StyleSheet.create({
   subtitle: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+    textAlign: 'center',
   },
   form: {
     width: '100%',
   },
-  registerContainer: {
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.lg,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    minHeight: 56,
+    ...theme.shadows.sm,
   },
-  registerText: {
-    ...theme.typography.body,
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#4285F4', // Google blue
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  googleIconText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  googleButtonText: {
+    ...theme.typography.bodyBold,
+    color: theme.colors.text,
+  },
+  footer: {
+    marginTop: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
+  },
+  footerText: {
+    ...theme.typography.small,
     color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
 

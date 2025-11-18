@@ -14,16 +14,24 @@ export function ScreenContainer({
   scrollable = false, 
   style 
 }: ScreenContainerProps) {
-  const Container = scrollable ? ScrollView : View;
+  if (scrollable) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, style]}
+        >
+          {children}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <Container 
-        style={[styles.container, style]}
-        contentContainerStyle={scrollable ? styles.scrollContent : undefined}
-      >
+      <View style={[styles.container, style]}>
         {children}
-      </Container>
+      </View>
     </SafeAreaView>
   );
 }
@@ -37,7 +45,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.md,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
+    flexGrow: 1,
+    padding: theme.spacing.md,
     paddingBottom: theme.spacing.xl,
   },
 });

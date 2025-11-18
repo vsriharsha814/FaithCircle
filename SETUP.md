@@ -22,7 +22,8 @@
 1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
 2. Enable Authentication:
    - Go to Authentication > Sign-in method
-   - Enable Email/Password provider
+   - Enable **Google** provider (not Email/Password)
+   - Copy the **Web client ID** shown in the configuration
 3. Create a Firestore database:
    - Go to Firestore Database > Create database
    - Start in test mode (you can secure it later)
@@ -33,7 +34,10 @@
 5. Update Firebase configuration:
    - Open `src/utils/firebase.ts`
    - Replace the `firebaseConfig` object with your Firebase config
-   - Or use environment variables (see `.env.example`)
+6. Set up Google OAuth Client ID:
+   - Create a `.env` file in the root directory
+   - Add: `EXPO_PUBLIC_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com`
+   - Or temporarily hardcode it in `src/hooks/useAuth.ts` (see FIREBASE_SETUP.md for details)
 
 ## Project Structure
 
@@ -66,7 +70,7 @@ src/
 
 ## Next Steps
 
-1. ✅ Connect authentication to Firebase (COMPLETE - just add your Firebase config)
+1. ✅ Connect Google Sign-In authentication to Firebase (COMPLETE - just add your Firebase config and Google Client ID)
 2. Build Journal Today screen with form
 3. Implement CRUD operations for journal entries
 4. Add calendar view for journal history
