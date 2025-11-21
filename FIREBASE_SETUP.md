@@ -18,6 +18,18 @@
    - Click "Save"
    - **Important**: Copy the **Web client ID** shown in the configuration - you'll need this!
 
+### Important: OAuth Client Types
+
+**For Expo Go (Development):**
+- Using a **Web client ID** with Expo's OAuth proxy (`useProxy: true`) is acceptable for development
+- Expo's proxy uses secure HTTPS redirect URIs (e.g., `https://auth.expo.io/@username/project`)
+- This complies with Google's OAuth 2.0 policies for secure redirect URIs
+
+**For Production Builds (EAS Build / Standalone):**
+- You'll need to create separate OAuth clients for iOS and Android in Google Cloud Console
+- According to [Google's OAuth 2.0 policies](https://developers.google.com/identity/protocols/oauth2/policies#secure-response-handling), you should NOT use a "web" client type for native apps in production
+- Create iOS and Android OAuth clients and configure them properly before building production apps
+
 ## Step 3: Create Firestore Database
 
 1. In your Firebase project, go to **Firestore Database**
@@ -43,25 +55,105 @@
    - Replace the `firebaseConfig` object with your Firebase config from Step 4
 
 2. **Set up Google OAuth Client ID:**
-   - Create a `.env` file in the root directory (or use `app.json` extra config)
-   - Add your Google Web Client ID (from Step 2):
+   - Copy the sample environment file: `cp env.sample .env`
+   - Open `.env` and replace `your-google-web-client-id.apps.googleusercontent.com` with your actual Google Web Client ID
+   - **Or** create a `.env` file manually and add:
      ```
      EXPO_PUBLIC_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
      ```
    - **Note**: The Google Web Client ID is shown when you enable Google Sign-In in Firebase Console
 
-3. **Alternative (if .env doesn't work):**
-   - You can hardcode the Google Client ID temporarily in `src/hooks/useAuth.ts`:
+3. **Configure OAuth Client in Google Cloud Console (CRITICAL):**
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Select your Firebase project
+   - Navigate to **APIs & Services** → **Credentials**
+   - Find your **Web client ID** (the one you copied from Firebase Console)
+   - Click on the client ID to edit it
+   - Scroll down to **Authorized redirect URIs** (if using a Web client)
+   - **For Expo Go with expo-google-app-auth**: The library handles redirect URIs automatically, but you may need to configure iOS/Android OAuth clients in Google Cloud Console
+   - **Important**: When creating iOS/Android OAuth clients, use `host.expo.exponent` as:
+     - iOS Bundle Identifier: `host.expo.exponent`
+     - Android Package Name: `host.expo.exponent`
+   - Click **Save**
+   - **Note**: The app now uses `expo-google-app-auth` which is simpler and more reliable for Expo Go development
+
+4. **Alternative (if .env doesn't work):**
+   - You can hardcode the Google Client ID temporarily in `src/hooks/useAuth.tsx`:
      ```typescript
      clientId: "your-google-web-client-id.apps.googleusercontent.com"
      ```
 
-## Step 6: Test Authentication
+## Step 6: Find Your Redirect URI
+
+**Before testing, you need to know your exact redirect URI:**
 
 1. Start your app: `npm start`
-2. Click "Continue with Google"
-3. Sign in with your Google account
-4. Check Firebase Console > Authentication > Users to see your new user
+2. Open Expo Go and connect to your app
+3. Try to sign in (click "Continue with Google")
+4. Check the console/terminal - you'll see a log message like:
+   ```
+   🔗 Redirect URI: https://auth.expo.io/@your-username/faith-circle
+   ```
+5. **Copy this exact URI** - you'll need it for Step 5
+
+**If you're not sure of your redirect URI, you can also construct it manually:**
+- Format: `https://auth.expo.io/@your-expo-username/faith-circle`
+- Replace `your-expo-username` with your Expo account username
+- Replace `faith-circle` with your app's slug (from `app.json`, currently `"faith-circle"`)
+
+## Step 7: Test Authentication
+
+**Make sure you've completed Step 5 (Configure OAuth Client) before testing!**
+
+1. Start your app: `npm start`
+2. Open Expo Go and connect to your app
+3. Click "Continue with Google"
+4. Sign in with your Google account
+5. Check Firebase Console > Authentication > Users to see your new user
+
+**If you get an OAuth 2.0 compliance error:**
+- Double-check that you added the redirect URI to Google Cloud Console (Step 5)
+- Make sure the redirect URI in Google Cloud Console **exactly matches** the one logged in the console
+- Wait a few minutes for Google's changes to propagate
+
+## Step 8: Production OAuth Clients (For Production Builds)
+
+**Important**: Before building production apps, you must create proper OAuth clients according to [Google's OAuth 2.0 policies](https://developers.google.com/identity/protocols/oauth2/policies#secure-response-handling).
+
+1. **Go to Google Cloud Console** → APIs & Services → Credentials
+2. **Create OAuth 2.0 Client ID for iOS**:
+   - Click "Create Credentials" → "OAuth client ID"
+   - Application type: **iOS**
+   - Bundle ID: Your iOS bundle identifier (e.g., `com.faithcircle.app`)
+   - Save the Client ID
+
+3. **Create OAuth 2.0 Client ID for Android**:
+   - Click "Create Credentials" → "OAuth client ID"
+   - Application type: **Android**
+   - Package name: Your Android package name (e.g., `com.faithcircle.app`)
+   - SHA-1 certificate fingerprint: Get from `expo credentials:manager`
+   - Save the Client ID
+
+4. **Update your app configuration**:
+   - In `app.json`, add the iOS and Android client IDs to `extra`:
+     ```json
+     "extra": {
+       "expoGo": {
+         "googleClientId": "your-web-client-id.apps.googleusercontent.com"
+       },
+       "ios": {
+         "googleClientId": "your-ios-client-id.apps.googleusercontent.com"
+       },
+       "android": {
+         "googleClientId": "your-android-client-id.apps.googleusercontent.com"
+       }
+     }
+     ```
+   - Update `useAuth.tsx` to use platform-specific client IDs
+
+5. **For Expo Go Development**:
+   - Use `host.expo.exponent` as the bundle identifier/package name when creating iOS/Android OAuth clients
+   - The `expo-google-app-auth` library handles redirect URIs automatically
 
 ## Firestore Security Rules (Later)
 

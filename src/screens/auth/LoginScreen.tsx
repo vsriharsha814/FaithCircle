@@ -16,9 +16,22 @@ export function LoginScreen() {
     setLoading(true);
 
     try {
+      console.log('🔵 LoginScreen: Starting Google sign-in...');
       await signInWithGoogle();
+      console.log('🔵 LoginScreen: Sign-in successful!');
     } catch (err: any) {
-      setError(err.message || 'Sign in failed. Please try again.');
+      console.error('🔴 LoginScreen: Sign-in error caught:', err);
+      console.error('   Error message:', err?.message);
+      console.error('   Error code:', err?.code);
+      console.error('   Original error:', err?.originalError);
+      
+      const errorMessage = err?.message || err?.originalError?.message || 'Sign in failed. Please try again.';
+      setError(errorMessage);
+      
+      // Also log to help with debugging
+      if (__DEV__) {
+        console.error('Full error details:', err);
+      }
     } finally {
       setLoading(false);
     }

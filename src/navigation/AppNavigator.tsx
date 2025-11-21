@@ -65,7 +65,21 @@ function MainTabs() {
 export function AppNavigator() {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  // Add maximum loading time - show login after 3 seconds regardless
+  const [forceShow, setForceShow] = React.useState(false);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log('⏰ Force showing login screen after 3s timeout');
+        setForceShow(true);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (loading && !forceShow) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
