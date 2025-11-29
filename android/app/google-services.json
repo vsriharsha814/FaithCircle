@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "116489116894",
+    "project_id": "faithcircle-13a61",
+    "storage_bucket": "faithcircle-13a61.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:116489116894:android:5277baa29c35e97b65764f",
+        "android_client_info": {
+          "package_name": "com.faithcircle.faith_circle"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "116489116894-mk7uf7pmigic8b50gq3l4ebig0mkgk7a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0kP6cPTXFl5K51OyWGQ8ZquBoMz_Ydzo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "116489116894-mk7uf7pmigic8b50gq3l4ebig0mkgk7a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

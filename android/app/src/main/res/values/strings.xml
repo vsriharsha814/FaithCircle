@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+    Note: Google Client ID is now configured via .env file in the project root.
+    This strings.xml file is not used for Google Sign-In configuration.
+    The app reads GOOGLE_CLIENT_ID from the .env file using flutter_dotenv.
+    -->
+</resources>
+
+
