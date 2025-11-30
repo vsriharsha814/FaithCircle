@@ -15,6 +15,10 @@ migrate_working_dir/
 .env.local
 .env.*.local
 
+# Google Services (contains sensitive keys)
+**/google-services.json
+**/GoogleService-Info.plist
+
 # IntelliJ related
 *.iml
 *.ipr
