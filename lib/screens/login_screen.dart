@@ -70,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Church Icon
-                Icon(
+                const Icon(
                   Icons.church,
                   size: 100,
                   color: Colors.black,
@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 40),
                 
                 // App Title
-                Text(
+                const Text(
                   'FaithCircle',
                   textAlign: TextAlign.center,
                   style: TextStyle(

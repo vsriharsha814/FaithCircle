@@ -12,7 +12,7 @@ class SermonNotesScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.menu_book,
                 size: 80,
                 color: Colors.black,

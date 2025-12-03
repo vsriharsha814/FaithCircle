@@ -19,17 +19,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget _getScreen(int index) {
     switch (index) {
       case 0:
-        return SermonNotesScreen(key: const ValueKey('sermon_notes'));
+        return const SermonNotesScreen(key: ValueKey('sermon_notes'));
       case 1:
-        return VerseLockerScreen(key: const ValueKey('verse_locker'));
+        return const VerseLockerScreen(key: ValueKey('verse_locker'));
       case 2:
-        return QuizGameScreen(key: const ValueKey('quiz_game'));
+        return const QuizGameScreen(key: ValueKey('quiz_game'));
       case 3:
-        return StreakScreen(key: const ValueKey('streak'));
+        return const StreakScreen(key: ValueKey('streak'));
       case 4:
-        return ProfileScreen(key: const ValueKey('profile'));
+        return const ProfileScreen(key: ValueKey('profile'));
       default:
-        return SermonNotesScreen(key: const ValueKey('sermon_notes'));
+        return const SermonNotesScreen(key: ValueKey('sermon_notes'));
     }
   }
 
@@ -62,7 +62,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ),
           child: SafeArea(
-            child: Container(
+            child: SizedBox(
               height: 60,
               child: LayoutBuilder(
                 builder: (context, constraints) {

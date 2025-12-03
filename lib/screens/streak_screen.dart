@@ -12,7 +12,7 @@ class StreakScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.local_fire_department,
                 size: 80,
                 color: Colors.black,

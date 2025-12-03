@@ -12,7 +12,7 @@ class ExploreScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.explore,
                 size: 80,
                 color: Colors.black,

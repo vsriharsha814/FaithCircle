@@ -12,7 +12,7 @@ class VerseLockerScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.lock,
                 size: 80,
                 color: Colors.black,
