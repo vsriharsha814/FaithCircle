@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/sermon_note.dart';
 import '../services/notes_service.dart';
 
@@ -17,7 +18,10 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
   final TextEditingController _scriptureController = TextEditingController();
   final TextEditingController _takeawaysController = TextEditingController();
   final TextEditingController _actionStepsController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   final List<TextEditingController> _mainPointControllers = [];
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isSaving = false;
 
   @override
@@ -28,6 +32,9 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
       _scriptureController.text = widget.note!.scripture ?? '';
       _takeawaysController.text = widget.note!.takeaways;
       _actionStepsController.text = widget.note!.actionSteps;
+      _notesController.text = widget.note!.notes;
+      _selectedDate = widget.note!.noteDate;
+      _selectedTime = TimeOfDay.fromDateTime(widget.note!.noteDate);
       _mainPointControllers.addAll(
         widget.note!.mainPoints.map((point) => TextEditingController(text: point)),
       );
@@ -43,10 +50,37 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
     _scriptureController.dispose();
     _takeawaysController.dispose();
     _actionStepsController.dispose();
+    _notesController.dispose();
     for (var controller in _mainPointControllers) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
   }
 
   void _addMainPoint() {
@@ -79,6 +113,14 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
         .where((text) => text.isNotEmpty)
         .toList();
 
+    final noteDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
     final now = DateTime.now();
     final note = SermonNote(
       id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -89,6 +131,8 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
       mainPoints: mainPoints,
       takeaways: _takeawaysController.text.trim(),
       actionSteps: _actionStepsController.text.trim(),
+      notes: _notesController.text.trim(),
+      noteDate: noteDateTime,
       createdAt: widget.note?.createdAt ?? now,
       updatedAt: now,
     );
@@ -164,6 +208,58 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Date and Time Picker
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectDate,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat('MMM dd, yyyy').format(_selectedDate),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectTime,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedTime.format(context),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
               // Title
               TextField(
                 controller: _titleController,
@@ -288,6 +384,23 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                 ),
                 maxLines: 4,
               ),
+              const SizedBox(height: 24),
+
+              // Notes (Additional text box)
+              _buildSectionTitle('Notes'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                  hintText: 'Additional notes...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                maxLines: 6,
+              ),
               const SizedBox(height: 32),
             ],
           ),
@@ -307,4 +420,3 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
     );
   }
 }
-

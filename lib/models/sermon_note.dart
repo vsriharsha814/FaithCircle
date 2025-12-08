@@ -5,6 +5,8 @@ class SermonNote {
   final List<String> mainPoints;
   final String takeaways;
   final String actionSteps;
+  final String notes;
+  final DateTime noteDate;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -15,6 +17,8 @@ class SermonNote {
     required this.mainPoints,
     required this.takeaways,
     required this.actionSteps,
+    required this.notes,
+    required this.noteDate,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -27,6 +31,8 @@ class SermonNote {
       'mainPoints': mainPoints,
       'takeaways': takeaways,
       'actionSteps': actionSteps,
+      'notes': notes,
+      'noteDate': noteDate.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -38,8 +44,14 @@ class SermonNote {
       title: json['title'] as String,
       scripture: json['scripture'] as String?,
       mainPoints: List<String>.from(json['mainPoints'] as List),
-      takeaways: json['takeaways'] as String,
-      actionSteps: json['actionSteps'] as String,
+      takeaways: json['takeaways'] as String? ?? '',
+      actionSteps: json['actionSteps'] as String? ?? '',
+      notes: json.containsKey('notes') && json['notes'] != null 
+          ? json['notes'] as String 
+          : '',
+      noteDate: json['noteDate'] != null
+          ? DateTime.parse(json['noteDate'] as String)
+          : DateTime.parse(json['createdAt'] as String), // Fallback for old notes
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -52,6 +64,8 @@ class SermonNote {
     List<String>? mainPoints,
     String? takeaways,
     String? actionSteps,
+    String? notes,
+    DateTime? noteDate,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -62,6 +76,8 @@ class SermonNote {
       mainPoints: mainPoints ?? this.mainPoints,
       takeaways: takeaways ?? this.takeaways,
       actionSteps: actionSteps ?? this.actionSteps,
+      notes: notes ?? this.notes,
+      noteDate: noteDate ?? this.noteDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/personal_note.dart';
 import '../services/notes_service.dart';
 
@@ -15,6 +16,8 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
   final NotesService _notesService = NotesService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isSaving = false;
 
   @override
@@ -23,6 +26,8 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
     if (widget.note != null) {
       _titleController.text = widget.note!.title;
       _contentController.text = widget.note!.content;
+      _selectedDate = widget.note!.noteDate;
+      _selectedTime = TimeOfDay.fromDateTime(widget.note!.noteDate);
     }
   }
 
@@ -31,6 +36,32 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
   }
 
   Future<void> _saveNote() async {
@@ -43,11 +74,20 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
 
     setState(() => _isSaving = true);
 
+    final noteDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
     final now = DateTime.now();
     final note = PersonalNote(
       id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: _titleController.text.trim(),
       content: _contentController.text.trim(),
+      noteDate: noteDateTime,
       createdAt: widget.note?.createdAt ?? now,
       updatedAt: now,
     );
@@ -122,6 +162,57 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
+              // Date and Time Picker
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectDate,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat('MMM dd, yyyy').format(_selectedDate),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: _selectTime,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              _selectedTime.format(context),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 decoration: const InputDecoration(
@@ -168,4 +259,3 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
     );
   }
 }
-
