@@ -23,6 +23,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isSaving = false;
+  bool _isEditing = false; // New notes start in edit mode, existing notes in view mode
 
   @override
   void initState() {
@@ -38,9 +39,11 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
       _mainPointControllers.addAll(
         widget.note!.mainPoints.map((point) => TextEditingController(text: point)),
       );
+      _isEditing = false; // Existing notes start in view mode
     } else {
       // Start with one empty main point field
       _mainPointControllers.add(TextEditingController());
+      _isEditing = true; // New notes start in edit mode
     }
   }
 
@@ -58,6 +61,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
   }
 
   Future<void> _selectDate() async {
+    if (!_isEditing) return;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -72,6 +76,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
   }
 
   Future<void> _selectTime() async {
+    if (!_isEditing) return;
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
@@ -83,13 +88,21 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
     }
   }
 
+  void _toggleEditMode() {
+    setState(() {
+      _isEditing = !_isEditing;
+    });
+  }
+
   void _addMainPoint() {
+    if (!_isEditing) return;
     setState(() {
       _mainPointControllers.add(TextEditingController());
     });
   }
 
   void _removeMainPoint(int index) {
+    if (!_isEditing) return;
     if (_mainPointControllers.length > 1) {
       setState(() {
         _mainPointControllers[index].dispose();
@@ -138,10 +151,17 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
     );
 
     await _notesService.saveSermonNote(note);
-    setState(() => _isSaving = false);
+    setState(() {
+      _isSaving = false;
+      _isEditing = false; // Exit edit mode after saving
+    });
 
     if (mounted) {
-      Navigator.pop(context, true);
+      if (widget.note == null) {
+        // New note - go back to list
+        Navigator.pop(context, true);
+      }
+      // Existing note - stay on page but exit edit mode
     }
   }
 
@@ -190,16 +210,22 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: _deleteNote,
             ),
-          IconButton(
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check, color: Colors.black),
-            onPressed: _isSaving ? null : _saveNote,
-          ),
+          if (_isEditing)
+            IconButton(
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check, color: Colors.black),
+              onPressed: _isSaving ? null : _saveNote,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.black),
+              onPressed: _toggleEditMode,
+            ),
         ],
       ),
       body: SafeArea(
@@ -213,22 +239,25 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: _selectDate,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Text(
-                              DateFormat('MMM dd, yyyy').format(_selectedDate),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
+                      onTap: _isEditing ? _selectDate : null,
+                      child: Opacity(
+                        opacity: _isEditing ? 1.0 : 0.6,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(_selectedDate),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -236,22 +265,25 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
-                      onTap: _selectTime,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.access_time, size: 18, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Text(
-                              _selectedTime.format(context),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
+                      onTap: _isEditing ? _selectTime : null,
+                      child: Opacity(
+                        opacity: _isEditing ? 1.0 : 0.6,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedTime.format(context),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -263,6 +295,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               // Title
               TextField(
                 controller: _titleController,
+                readOnly: !_isEditing,
                 decoration: const InputDecoration(
                   hintText: 'Sermon Title',
                   border: InputBorder.none,
@@ -285,6 +318,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _scriptureController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   hintText: 'e.g., John 3:16',
                   border: OutlineInputBorder(
@@ -301,14 +335,15 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildSectionTitle('Main Points'),
-                  TextButton.icon(
-                    onPressed: _addMainPoint,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Point'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF121212),
+                  if (_isEditing)
+                    TextButton.icon(
+                      onPressed: _addMainPoint,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add Point'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF121212),
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -321,6 +356,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                       Expanded(
                         child: TextField(
                           controller: _mainPointControllers[index],
+                          readOnly: !_isEditing,
                           decoration: InputDecoration(
                             hintText: 'Main point ${index + 1}',
                             border: OutlineInputBorder(
@@ -341,7 +377,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
                           ),
                         ),
                       ),
-                      if (_mainPointControllers.length > 1)
+                      if (_isEditing && _mainPointControllers.length > 1)
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
                           onPressed: () => _removeMainPoint(index),
@@ -357,6 +393,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _takeawaysController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   hintText: 'What did you learn?',
                   border: OutlineInputBorder(
@@ -374,6 +411,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _actionStepsController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   hintText: 'What will you do differently?',
                   border: OutlineInputBorder(
@@ -391,6 +429,7 @@ class _SermonNoteDetailScreenState extends State<SermonNoteDetailScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _notesController,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   hintText: 'Additional notes...',
                   border: OutlineInputBorder(

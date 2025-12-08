@@ -19,6 +19,7 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isSaving = false;
+  bool _isEditing = false; // New notes start in edit mode, existing notes in view mode
 
   @override
   void initState() {
@@ -28,6 +29,9 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
       _contentController.text = widget.note!.content;
       _selectedDate = widget.note!.noteDate;
       _selectedTime = TimeOfDay.fromDateTime(widget.note!.noteDate);
+      _isEditing = false; // Existing notes start in view mode
+    } else {
+      _isEditing = true; // New notes start in edit mode
     }
   }
 
@@ -39,6 +43,7 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
   }
 
   Future<void> _selectDate() async {
+    if (!_isEditing) return;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -53,6 +58,7 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
   }
 
   Future<void> _selectTime() async {
+    if (!_isEditing) return;
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
@@ -62,6 +68,12 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
         _selectedTime = picked;
       });
     }
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditing = !_isEditing;
+    });
   }
 
   Future<void> _saveNote() async {
@@ -93,10 +105,17 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
     );
 
     await _notesService.savePersonalNote(note);
-    setState(() => _isSaving = false);
+    setState(() {
+      _isSaving = false;
+      _isEditing = false; // Exit edit mode after saving
+    });
 
     if (mounted) {
-      Navigator.pop(context, true);
+      if (widget.note == null) {
+        // New note - go back to list
+        Navigator.pop(context, true);
+      }
+      // Existing note - stay on page but exit edit mode
     }
   }
 
@@ -145,16 +164,22 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: _deleteNote,
             ),
-          IconButton(
-            icon: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.check, color: Colors.black),
-            onPressed: _isSaving ? null : _saveNote,
-          ),
+          if (_isEditing)
+            IconButton(
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check, color: Colors.black),
+              onPressed: _isSaving ? null : _saveNote,
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.black),
+              onPressed: _toggleEditMode,
+            ),
         ],
       ),
       body: SafeArea(
@@ -167,22 +192,25 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: _selectDate,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Text(
-                              DateFormat('MMM dd, yyyy').format(_selectedDate),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
+                      onTap: _isEditing ? _selectDate : null,
+                      child: Opacity(
+                        opacity: _isEditing ? 1.0 : 0.6,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(_selectedDate),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -190,22 +218,25 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: InkWell(
-                      onTap: _selectTime,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.access_time, size: 18, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Text(
-                              _selectedTime.format(context),
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
+                      onTap: _isEditing ? _selectTime : null,
+                      child: Opacity(
+                        opacity: _isEditing ? 1.0 : 0.6,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                              const SizedBox(width: 8),
+                              Text(
+                                _selectedTime.format(context),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -215,14 +246,18 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                readOnly: !_isEditing,
+                decoration: InputDecoration(
                   hintText: 'Title (optional)',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(
+                  hintStyle: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey,
                   ),
+                  suffixIcon: !_isEditing && _titleController.text.isEmpty
+                      ? null
+                      : null,
                 ),
                 style: const TextStyle(
                   fontSize: 24,
@@ -234,6 +269,7 @@ class _PersonalNoteDetailScreenState extends State<PersonalNoteDetailScreen> {
               Expanded(
                 child: TextField(
                   controller: _contentController,
+                  readOnly: !_isEditing,
                   decoration: const InputDecoration(
                     hintText: 'Write your thoughts...',
                     border: InputBorder.none,
