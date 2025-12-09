@@ -30,6 +30,11 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
   String? _selectedBook;
   int? _selectedChapter;
   int? _selectedVerse;
+  
+  // Menu controllers for MenuAnchor
+  final MenuController _bookMenuController = MenuController();
+  final MenuController _chapterMenuController = MenuController();
+  final MenuController _verseMenuController = MenuController();
 
   @override
   void initState() {
@@ -245,6 +250,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                     _textController.clear();
                   });
                 },
+                menuController: _bookMenuController,
               ),
               const SizedBox(height: 16),
               // Chapter Dropdown
@@ -274,6 +280,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                           _textController.clear();
                         });
                       },
+                menuController: _chapterMenuController,
               ),
               const SizedBox(height: 16),
               // Verse Dropdown
@@ -301,6 +308,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                         });
                         _fetchVerse();
                       },
+                menuController: _verseMenuController,
               ),
               if (_isLoadingVerse) ...[
                 const SizedBox(height: 16),
@@ -362,107 +370,113 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
     required T? value,
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?>? onChanged,
+    required MenuController menuController,
   }) {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return Container(
-          // Container with styling
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: value != null ? const Color(0xFF121212) : Colors.grey.shade300,
-              width: value != null ? 2 : 1,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate max width: available width - margin on each side (16px each = 32px total)
+        final maxMenuWidth = constraints.maxWidth - 32;
+        
+        return MenuAnchor(
+          controller: menuController,
+          style: MenuStyle(
+            backgroundColor: WidgetStateProperty.all(Colors.white),
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            elevation: WidgetStateProperty.all(8),
+            padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            ),
+            minimumSize: WidgetStateProperty.all(const Size(0, 0)),
+            maximumSize: WidgetStateProperty.all(
+              Size(maxMenuWidth.clamp(0, double.infinity), 300),
             ),
           ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dropdownMenuTheme: DropdownMenuThemeData(
-                menuStyle: MenuStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.white),
-                  shape: WidgetStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  elevation: WidgetStateProperty.all(8),
-                  padding: WidgetStateProperty.all(
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  ),
-                  minimumSize: WidgetStateProperty.all(const Size(0, 0)),
-                  maximumSize: WidgetStateProperty.all(
-                    Size(MediaQuery.of(context).size.width - 48, double.infinity),
-                  ),
-                ),
+          menuChildren: items.map((item) {
+            return MenuItemButton(
+              onPressed: () {
+                if (onChanged != null) {
+                  onChanged(item.value);
+                }
+                menuController.close();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                child: item.child,
               ),
-            ),
-            child: DropdownButtonFormField<T>(
-                value: value,
-                decoration: InputDecoration(
-                  labelText: label,
-                  labelStyle: GoogleFonts.montserrat(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
-                  ),
-                  prefixIcon: Icon(
-                    icon,
-                    color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
-                    size: 22,
-                  ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
+            );
+          }).toList(),
+          builder: (context, controller, child) {
+            return InkWell(
+              onTap: onChanged == null
+                  ? null
+                  : () {
+                      if (controller.isOpen) {
+                        controller.close();
+                      } else {
+                        controller.open();
+                      }
+                    },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: value != null ? const Color(0xFF121212) : Colors.grey.shade300,
+                    width: value != null ? 2 : 1,
                   ),
                 ),
-                style: GoogleFonts.montserrat(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
                 ),
-                icon: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
-                ),
-                dropdownColor: Colors.white,
-                items: items.map((item) {
-                  return DropdownMenuItem<T>(
-                    value: item.value,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                      child: item.child,
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                      size: 22,
                     ),
-                  );
-                }).toList(),
-                onChanged: onChanged,
-                menuMaxHeight: 300,
-                borderRadius: BorderRadius.circular(16),
-                itemHeight: 48,
-                isExpanded: true,
-                alignment: AlignmentDirectional.centerStart,
-                isDense: false,
-                selectedItemBuilder: (context) {
-                  return items.map((item) {
-                    return Container(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        item.value.toString(),
-                        style: GoogleFonts.montserrat(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            value != null ? value.toString() : 'Select $label',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: value != null ? Colors.black : Colors.grey.shade400,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList();
-                },
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                    ),
+                  ],
+                ),
               ),
-            ),
+            );
+          },
         );
       },
     );
