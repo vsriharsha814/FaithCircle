@@ -189,6 +189,7 @@ class _SermonNotesScreenState extends State<SermonNotesScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
+      color: const Color(0xFFFFF8E1), // Warm light yellow
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.shade200),
@@ -239,6 +240,7 @@ class _SermonNotesScreenState extends State<SermonNotesScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
+      color: const Color(0xFFFFF8E1), // Warm light yellow
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: Colors.grey.shade200),
