@@ -374,25 +374,35 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate max width: available width - margin on each side (16px each = 32px total)
-        final maxMenuWidth = constraints.maxWidth - 32;
+        // Menu width should match the dropdown box width exactly
+        // The parent SingleChildScrollView has 16px padding on each side
+        // So the available width is screen width - 32px
+        // The dropdown box uses the full constraints.maxWidth
+        final boxWidth = constraints.maxWidth;
         
         return MenuAnchor(
           controller: menuController,
+          alignmentOffset: const Offset(0, 4), // Small offset for spacing
+          crossAxisUnconstrained: false, // Constrain menu to not exceed bounds
           style: MenuStyle(
             backgroundColor: WidgetStateProperty.all(Colors.white),
             shape: WidgetStateProperty.all(
               RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(
+                  color: Color(0xFFE0E0E0), // Light grey border
+                  width: 1.5,
+                ),
               ),
             ),
-            elevation: WidgetStateProperty.all(8),
+            elevation: WidgetStateProperty.all(0), // Remove shadow
             padding: WidgetStateProperty.all(
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              EdgeInsets.zero, // Remove padding to match box width exactly
             ),
-            minimumSize: WidgetStateProperty.all(const Size(0, 0)),
+            // Menu width matches box width exactly
+            minimumSize: WidgetStateProperty.all(Size(boxWidth, 0)),
             maximumSize: WidgetStateProperty.all(
-              Size(maxMenuWidth.clamp(0, double.infinity), 300),
+              Size(boxWidth, 300),
             ),
           ),
           menuChildren: items.map((item) {
@@ -403,8 +413,11 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                 }
                 menuController.close();
               },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              style: MenuItemButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              child: SizedBox(
+                width: boxWidth, // Match the box width exactly
                 child: item.child,
               ),
             );
