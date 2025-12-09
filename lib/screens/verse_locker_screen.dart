@@ -36,38 +36,85 @@ class _VerseLockerScreenState extends State<VerseLockerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
-        title: Text(
-          'Delete Verse',
-          style: GoogleFonts.montserrat(
-            fontWeight: FontWeight.bold,
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.delete_outline,
+                color: Colors.red.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Delete Verse',
+                style: GoogleFonts.montserrat(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'Are you sure you want to delete "${verse.reference}"? This action cannot be undone.',
+            style: GoogleFonts.montserrat(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
           ),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${verse.reference}"?',
-          style: GoogleFonts.montserrat(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
             child: Text(
               'Cancel',
               style: GoogleFonts.montserrat(
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
               ),
             ),
           ),
-          TextButton(
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
             ),
             child: Text(
               'Delete',
               style: GoogleFonts.montserrat(
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
           ),
