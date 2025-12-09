@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/verse.dart';
 import '../services/verse_service.dart';
+import '../services/bible_api_service.dart';
+import '../services/bible_cache_service.dart';
+import '../data/bible_structure.dart';
 
 class AddVerseScreen extends StatefulWidget {
   final Verse? verse;
@@ -14,26 +18,18 @@ class AddVerseScreen extends StatefulWidget {
 
 class _AddVerseScreenState extends State<AddVerseScreen> {
   final VerseService _verseService = VerseService();
+  final CachedBibleApiService _bibleApiService = CachedBibleApiService(
+    BibleServiceFactory.createService(),
+  );
   final TextEditingController _referenceController = TextEditingController();
   final TextEditingController _textController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
   bool _isSaving = false;
-  bool _showSearchResults = false;
-  List<Map<String, String>> _searchResults = [];
+  bool _isLoadingVerse = false;
 
-  // Sample Bible verses for search (in a real app, this would come from an API)
-  final List<Map<String, String>> _sampleVerses = [
-    {'reference': 'John 3:16', 'text': 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.'},
-    {'reference': 'Philippians 4:13', 'text': 'I can do all this through him who gives me strength.'},
-    {'reference': 'Jeremiah 29:11', 'text': 'For I know the plans I have for you," declares the Lord, "plans to prosper you and not to harm you, plans to give you hope and a future.'},
-    {'reference': 'Romans 8:28', 'text': 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.'},
-    {'reference': 'Proverbs 3:5-6', 'text': 'Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.'},
-    {'reference': 'Isaiah 41:10', 'text': 'So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.'},
-    {'reference': 'Matthew 28:20', 'text': 'And surely I am with you always, to the very end of the age.'},
-    {'reference': 'Joshua 1:9', 'text': 'Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.'},
-    {'reference': '1 Corinthians 13:4-5', 'text': 'Love is patient, love is kind. It does not envy, it does not boast, it is not proud. It does not dishonor others, it is not self-seeking, it is not easily angered, it keeps no record of wrongs.'},
-    {'reference': 'Psalm 23:1', 'text': 'The Lord is my shepherd, I lack nothing.'},
-  ];
+  // Dropdown selections
+  String? _selectedBook;
+  int? _selectedChapter;
+  int? _selectedVerse;
 
   @override
   void initState() {
@@ -41,45 +37,104 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
     if (widget.verse != null) {
       _referenceController.text = widget.verse!.reference;
       _textController.text = widget.verse!.text;
+      _parseReference(widget.verse!.reference);
     }
-    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _parseReference(String reference) {
+    // Try to parse "Book Chapter:Verse" format
+    final parts = reference.split(' ');
+    if (parts.length >= 2) {
+      final bookName = parts.sublist(0, parts.length - 1).join(' ');
+      final chapterVerse = parts.last;
+      final cvParts = chapterVerse.split(':');
+      
+      if (cvParts.length == 2) {
+        final book = BibleStructure.books.firstWhere(
+          (b) => b.name == bookName,
+          orElse: () => BibleStructure.books.first,
+        );
+        setState(() {
+          _selectedBook = book.name;
+          _selectedChapter = int.tryParse(cvParts[0]);
+          _selectedVerse = int.tryParse(cvParts[1]);
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _referenceController.dispose();
     _textController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase().trim();
-    if (query.isEmpty) {
-      setState(() {
-        _showSearchResults = false;
-        _searchResults = [];
-      });
+  Future<void> _fetchVerse() async {
+    if (_selectedBook == null || _selectedChapter == null || _selectedVerse == null) {
       return;
     }
 
     setState(() {
-      _showSearchResults = true;
-      _searchResults = _sampleVerses
-          .where((verse) =>
-              verse['reference']!.toLowerCase().contains(query) ||
-              verse['text']!.toLowerCase().contains(query))
-          .toList();
+      _isLoadingVerse = true;
     });
-  }
 
-  void _selectSearchResult(Map<String, String> result) {
-    setState(() {
-      _referenceController.text = result['reference']!;
-      _textController.text = result['text']!;
-      _searchController.clear();
-      _showSearchResults = false;
-    });
+    final reference = BibleStructure.formatReference(
+      _selectedBook!,
+      _selectedChapter!,
+      _selectedVerse!,
+    );
+
+    try {
+      final verse = await _bibleApiService.getVerse(reference);
+      if (verse != null && mounted) {
+        setState(() {
+          _referenceController.text = verse.reference;
+          _textController.text = verse.text;
+          _isLoadingVerse = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoadingVerse = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not fetch verse. Please enter manually.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVerse = false;
+        });
+        
+        // Check if it's a network error
+        final errorMsg = e.toString().toLowerCase();
+        final isNetworkError = errorMsg.contains('socketexception') ||
+            errorMsg.contains('failed host lookup') ||
+            errorMsg.contains('network');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isNetworkError
+                  ? 'No internet connection. Please check your network or enter verse manually.'
+                  : 'Error fetching verse. Please enter manually.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _saveVerse() async {
@@ -112,6 +167,13 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final chapters = _selectedBook != null
+        ? BibleStructure.getChapterNumbers(_selectedBook!)
+        : <int>[];
+    final verses = (_selectedBook != null && _selectedChapter != null)
+        ? BibleStructure.getVerseNumbers(_selectedBook!, _selectedChapter!)
+        : <int>[];
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -147,93 +209,131 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search Bar
-              TextField(
-                controller: _searchController,
+              // Verse Selector Section
+              Text(
+                'Select Verse',
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Book Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedBook,
                 decoration: InputDecoration(
-                  hintText: 'Search Bible verses...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _showSearchResults = false;
-                              _searchResults = [];
-                            });
-                          },
-                        )
-                      : null,
+                  labelText: 'Book',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.grey.shade300),
                   ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-              ),
-              // Search Results
-              if (_showSearchResults && _searchResults.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _searchResults.length,
-                    itemBuilder: (context, index) {
-                      final result = _searchResults[index];
-                      return ListTile(
-                        title: Text(
-                          result['reference']!,
-                          style: GoogleFonts.montserrat(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        subtitle: Text(
-                          result['text']!,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onTap: () => _selectSearchResult(result),
-                      );
-                    },
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
                 ),
-              ],
-              if (_showSearchResults && _searchResults.isEmpty &&
-                  _searchController.text.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'No verses found. Try a different search or enter manually.',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                items: BibleStructure.books.map((book) {
+                  return DropdownMenuItem<String>(
+                    value: book.name,
+                    child: Text(
+                      book.name,
+                      style: GoogleFonts.montserrat(),
                     ),
-                    textAlign: TextAlign.center,
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedBook = value;
+                    _selectedChapter = null;
+                    _selectedVerse = null;
+                    _referenceController.clear();
+                    _textController.clear();
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              // Chapter Dropdown
+              DropdownButtonFormField<int>(
+                value: _selectedChapter,
+                decoration: InputDecoration(
+                  labelText: 'Chapter',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
                 ),
+                items: chapters.map((chapter) {
+                  return DropdownMenuItem<int>(
+                    value: chapter,
+                    child: Text(
+                      chapter.toString(),
+                      style: GoogleFonts.montserrat(),
+                    ),
+                  );
+                }).toList(),
+                onChanged: _selectedBook == null
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedChapter = value;
+                          _selectedVerse = null;
+                          _referenceController.clear();
+                          _textController.clear();
+                        });
+                      },
+              ),
+              const SizedBox(height: 16),
+              // Verse Dropdown
+              DropdownButtonFormField<int>(
+                value: _selectedVerse,
+                decoration: InputDecoration(
+                  labelText: 'Verse',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                items: verses.map((verse) {
+                  return DropdownMenuItem<int>(
+                    value: verse,
+                    child: Text(
+                      verse.toString(),
+                      style: GoogleFonts.montserrat(),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (_selectedBook == null || _selectedChapter == null)
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedVerse = value;
+                        });
+                        _fetchVerse();
+                      },
+              ),
+              if (_isLoadingVerse) ...[
+                const SizedBox(height: 16),
+                const Center(
+                  child: CircularProgressIndicator(),
+                ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               // Manual Entry Section
               Text(
                 'Or enter manually',
                 style: GoogleFonts.montserrat(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade700,
+                  color: Colors.black,
                 ),
               ),
               const SizedBox(height: 12),
@@ -274,4 +374,3 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
     );
   }
 }
-

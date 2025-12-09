@@ -22,11 +22,7 @@ class AuthService {
 
   AuthService() {
     final clientId = _serverClientId;
-    print('🔍 Initializing AuthService...');
-    if (clientId != null && clientId.isNotEmpty) {
-      final preview = clientId.length > 20 ? '${clientId.substring(0, 20)}...' : clientId;
-      print('✅ Client ID from .env: Found ($preview)');
-    } else {
+    if (clientId == null || clientId.isEmpty) {
       print('❌ Client ID from .env: NOT FOUND or EMPTY');
       print('   Make sure GOOGLE_CLIENT_ID is set in your .env file');
       print('   Format: GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com');
@@ -46,12 +42,8 @@ class AuthService {
 
   Future<GoogleSignInAccount?> signInWithGoogle() async {
     try {
-      // Debug: Print current configuration
-      print('🔍 Attempting Google Sign-In...');
       final currentClientId = _serverClientId;
-      if (currentClientId != null) {
-        print('🔍 Client ID being used: ${currentClientId.length > 40 ? "${currentClientId.substring(0, 40)}..." : currentClientId}');
-      } else {
+      if (currentClientId == null || currentClientId.isEmpty) {
         print('❌ Client ID is NULL - cannot proceed with sign-in');
         return null;
       }
@@ -71,9 +63,6 @@ class AuthService {
         print('📋 Current configuration:');
         final clientId = _serverClientId;
         print('   - Client ID from .env: ${clientId != null ? "✅ Loaded" : "❌ Not loaded"}');
-        if (clientId != null) {
-          print('   - Client ID preview: ${clientId.length > 50 ? "${clientId.substring(0, 50)}..." : clientId}');
-        }
         print('');
         print('💡 Solutions:');
         print('   - Verify your OAuth Client ID in Google Cloud Console');

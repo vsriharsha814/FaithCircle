@@ -8,14 +8,10 @@ Future<void> main() async {
   // Load .env file
   try {
     await dotenv.load(fileName: '.env');
-    print('✅ .env file loaded successfully');
-    // Debug: Print what's in the .env file
     final clientId = dotenv.env['GOOGLE_CLIENT_ID'];
-    if (clientId != null) {
-      print('✅ GOOGLE_CLIENT_ID found in .env: ${clientId.length > 30 ? "${clientId.substring(0, 30)}..." : clientId}');
-    } else {
+    if (clientId == null || clientId.isEmpty) {
       print('❌ GOOGLE_CLIENT_ID NOT FOUND in .env file');
-      print('   Available keys in .env: ${dotenv.env.keys.join(", ")}');
+      print('   Make sure GOOGLE_CLIENT_ID is set in your .env file');
     }
   } catch (e) {
     print('⚠️  Could not load .env file: $e');
