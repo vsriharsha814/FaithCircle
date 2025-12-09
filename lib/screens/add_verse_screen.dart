@@ -31,10 +31,17 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
   int? _selectedChapter;
   int? _selectedVerse;
   
+  // Range selection mode
+  bool _isRangeMode = false;
+  int? _selectedFromVerse;
+  int? _selectedToVerse;
+  
   // Menu controllers for MenuAnchor
   final MenuController _bookMenuController = MenuController();
   final MenuController _chapterMenuController = MenuController();
   final MenuController _verseMenuController = MenuController();
+  final MenuController _fromVerseMenuController = MenuController();
+  final MenuController _toVerseMenuController = MenuController();
 
   @override
   void initState() {
@@ -76,10 +83,35 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
   }
 
   Future<void> _fetchVerse() async {
-    if (_selectedBook == null || _selectedChapter == null || _selectedVerse == null) {
+    if (_selectedBook == null || _selectedChapter == null) {
       return;
     }
 
+    // Check if range mode or single verse mode
+    if (_isRangeMode) {
+      if (_selectedFromVerse == null || _selectedToVerse == null) {
+        return;
+      }
+      if (_selectedFromVerse! > _selectedToVerse!) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('From verse must be less than or equal to To verse.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      await _fetchVerseRange();
+    } else {
+      if (_selectedVerse == null) {
+        return;
+      }
+      await _fetchSingleVerse();
+    }
+  }
+
+  Future<void> _fetchSingleVerse() async {
     setState(() {
       _isLoadingVerse = true;
     });
@@ -115,31 +147,87 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
         setState(() {
           _isLoadingVerse = false;
         });
+        _handleFetchError(e);
+      }
+    }
+  }
+
+  Future<void> _fetchVerseRange() async {
+    setState(() {
+      _isLoadingVerse = true;
+    });
+
+    try {
+      final List<String> verseTexts = [];
+      
+      // Fetch each verse in the range
+      for (int verseNum = _selectedFromVerse!; verseNum <= _selectedToVerse!; verseNum++) {
+        final reference = BibleStructure.formatReference(
+          _selectedBook!,
+          _selectedChapter!,
+          verseNum,
+        );
         
-        // Check if it's a network error
-        final errorMsg = e.toString().toLowerCase();
-        final isNetworkError = errorMsg.contains('socketexception') ||
-            errorMsg.contains('failed host lookup') ||
-            errorMsg.contains('network');
+        final verse = await _bibleApiService.getVerse(reference);
+        if (verse != null) {
+          verseTexts.add(verse.text);
+        }
+      }
+
+      if (verseTexts.isNotEmpty && mounted) {
+        // Format reference as "Book Chapter:FromVerse-ToVerse"
+        final reference = '${_selectedBook} ${_selectedChapter}:${_selectedFromVerse}-${_selectedToVerse}';
+        final combinedText = verseTexts.join(' ');
         
+        setState(() {
+          _referenceController.text = reference;
+          _textController.text = combinedText;
+          _isLoadingVerse = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoadingVerse = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isNetworkError
-                  ? 'No internet connection. Please check your network or enter verse manually.'
-                  : 'Error fetching verse. Please enter manually.',
-            ),
+          const SnackBar(
+            content: Text('Could not fetch verses. Please enter manually.'),
             backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
+            duration: Duration(seconds: 3),
           ),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVerse = false;
+        });
+        _handleFetchError(e);
+      }
     }
+  }
+
+  void _handleFetchError(dynamic e) {
+    final errorMsg = e.toString().toLowerCase();
+    final isNetworkError = errorMsg.contains('socketexception') ||
+        errorMsg.contains('failed host lookup') ||
+        errorMsg.contains('network');
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isNetworkError
+              ? 'No internet connection. Please check your network or enter verse manually.'
+              : 'Error fetching verse. Please enter manually.',
+        ),
+        backgroundColor: Colors.orange,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
+      ),
+    );
   }
 
   Future<void> _saveVerse() async {
@@ -253,63 +341,248 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                 menuController: _bookMenuController,
               ),
               const SizedBox(height: 16),
-              // Chapter Dropdown
-              _buildModernDropdown<int>(
-                label: 'Chapter',
-                icon: Icons.looks_one_outlined,
-                value: _selectedChapter,
-                items: chapters.map((chapter) {
-                  return DropdownMenuItem<int>(
-                    value: chapter,
-                    child: Text(
-                      chapter.toString(),
-                      style: GoogleFonts.montserrat(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+              // Chapter Dropdown with Range Toggle
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildModernDropdown<int>(
+                          label: 'Chapter',
+                          icon: Icons.looks_one_outlined,
+                          value: _selectedChapter,
+                          items: chapters.map((chapter) {
+                            return DropdownMenuItem<int>(
+                              value: chapter,
+                              child: Text(
+                                chapter.toString(),
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: _selectedBook == null
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _selectedChapter = value;
+                                    _selectedVerse = null;
+                                    _selectedFromVerse = null;
+                                    _selectedToVerse = null;
+                                    _referenceController.clear();
+                                    _textController.clear();
+                                  });
+                                },
+                          menuController: _chapterMenuController,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Compact Range Toggle with Label
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            decoration: BoxDecoration(
+                              color: _isRangeMode ? const Color(0xFF121212) : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _isRangeMode ? const Color(0xFF121212) : Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: (_selectedBook == null || _selectedChapter == null)
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _isRangeMode = !_isRangeMode;
+                                          if (_isRangeMode) {
+                                            // Switch to range mode - clear single verse
+                                            _selectedVerse = null;
+                                          } else {
+                                            // Switch to single mode - clear range
+                                            _selectedFromVerse = null;
+                                            _selectedToVerse = null;
+                                          }
+                                          _referenceController.clear();
+                                          _textController.clear();
+                                        });
+                                      },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Icon(
+                                    Icons.linear_scale,
+                                    color: _isRangeMode ? Colors.white : Colors.grey.shade600,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Range',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: _isRangeMode ? const Color(0xFF121212) : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if (_isRangeMode) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF121212).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Select multiple verses',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }).toList(),
-                onChanged: _selectedBook == null
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedChapter = value;
-                          _selectedVerse = null;
-                          _referenceController.clear();
-                          _textController.clear();
-                        });
-                      },
-                menuController: _chapterMenuController,
+                  ],
+                ],
               ),
               const SizedBox(height: 16),
-              // Verse Dropdown
-              _buildModernDropdown<int>(
-                label: 'Verse',
-                icon: Icons.format_list_numbered_outlined,
-                value: _selectedVerse,
-                items: verses.map((verse) {
-                  return DropdownMenuItem<int>(
-                    value: verse,
-                    child: Text(
-                      verse.toString(),
-                      style: GoogleFonts.montserrat(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+              // Verse Selection (Single or Range)
+              if (!_isRangeMode) ...[
+                // Single Verse Dropdown
+                _buildModernDropdown<int>(
+                  label: 'Verse',
+                  icon: Icons.format_list_numbered_outlined,
+                  value: _selectedVerse,
+                  items: verses.map((verse) {
+                    return DropdownMenuItem<int>(
+                      value: verse,
+                      child: Text(
+                        verse.toString(),
+                        style: GoogleFonts.montserrat(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (_selectedBook == null || _selectedChapter == null)
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedVerse = value;
+                          });
+                          _fetchVerse();
+                        },
+                  menuController: _verseMenuController,
+                ),
+              ] else ...[
+                // Range Selection - From Verse
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernDropdown<int>(
+                        label: 'From Verse',
+                        icon: Icons.play_arrow_outlined,
+                        value: _selectedFromVerse,
+                        items: verses.map((verse) {
+                          return DropdownMenuItem<int>(
+                            value: verse,
+                            child: Text(
+                              verse.toString(),
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (_selectedBook == null || _selectedChapter == null)
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedFromVerse = value;
+                                  // Reset to verse if from > to
+                                  if (_selectedToVerse != null && value != null && value > _selectedToVerse!) {
+                                    _selectedToVerse = null;
+                                  }
+                                });
+                                if (_selectedFromVerse != null && _selectedToVerse != null) {
+                                  _fetchVerse();
+                                }
+                              },
+                        menuController: _fromVerseMenuController,
                       ),
                     ),
-                  );
-                }).toList(),
-                onChanged: (_selectedBook == null || _selectedChapter == null)
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedVerse = value;
-                        });
-                        _fetchVerse();
-                      },
-                menuController: _verseMenuController,
-              ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernDropdown<int>(
+                        label: 'To Verse',
+                        icon: Icons.stop_outlined,
+                        value: _selectedToVerse,
+                        items: verses
+                            .where((verse) => _selectedFromVerse == null || verse >= _selectedFromVerse!)
+                            .map((verse) {
+                          return DropdownMenuItem<int>(
+                            value: verse,
+                            child: Text(
+                              verse.toString(),
+                              style: GoogleFonts.montserrat(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (_selectedBook == null || _selectedChapter == null || _selectedFromVerse == null)
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedToVerse = value;
+                                });
+                                if (_selectedFromVerse != null && _selectedToVerse != null) {
+                                  _fetchVerse();
+                                }
+                              },
+                        menuController: _toVerseMenuController,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_isLoadingVerse) ...[
                 const SizedBox(height: 16),
                 const Center(
