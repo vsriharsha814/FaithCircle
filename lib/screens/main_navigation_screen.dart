@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'sermon_notes_screen.dart';
 import 'verse_locker_screen.dart';
-import 'quiz_game_screen.dart';
+import 'quiz_menu_screen.dart';
 import 'streak_screen.dart';
 import 'profile_screen.dart';
 
@@ -23,7 +23,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       case 1:
         return const VerseLockerScreen(key: ValueKey('verse_locker'));
       case 2:
-        return const QuizGameScreen(key: ValueKey('quiz_game'));
+        return const QuizMenuScreen(key: ValueKey('quiz_game'));
       case 3:
         return const StreakScreen(key: ValueKey('streak'));
       case 4:
