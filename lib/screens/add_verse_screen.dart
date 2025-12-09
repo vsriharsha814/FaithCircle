@@ -213,32 +213,26 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
               Text(
                 'Select Verse',
                 style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                   color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               // Book Dropdown
-              DropdownButtonFormField<String>(
+              _buildModernDropdown<String>(
+                label: 'Book',
+                icon: Icons.menu_book_outlined,
                 value: _selectedBook,
-                decoration: InputDecoration(
-                  labelText: 'Book',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
                 items: BibleStructure.books.map((book) {
                   return DropdownMenuItem<String>(
                     value: book.name,
                     child: Text(
                       book.name,
-                      style: GoogleFonts.montserrat(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -254,25 +248,19 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
               ),
               const SizedBox(height: 16),
               // Chapter Dropdown
-              DropdownButtonFormField<int>(
+              _buildModernDropdown<int>(
+                label: 'Chapter',
+                icon: Icons.looks_one_outlined,
                 value: _selectedChapter,
-                decoration: InputDecoration(
-                  labelText: 'Chapter',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
                 items: chapters.map((chapter) {
                   return DropdownMenuItem<int>(
                     value: chapter,
                     child: Text(
                       chapter.toString(),
-                      style: GoogleFonts.montserrat(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -289,25 +277,19 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
               ),
               const SizedBox(height: 16),
               // Verse Dropdown
-              DropdownButtonFormField<int>(
+              _buildModernDropdown<int>(
+                label: 'Verse',
+                icon: Icons.format_list_numbered_outlined,
                 value: _selectedVerse,
-                decoration: InputDecoration(
-                  labelText: 'Verse',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
                 items: verses.map((verse) {
                   return DropdownMenuItem<int>(
                     value: verse,
                     child: Text(
                       verse.toString(),
-                      style: GoogleFonts.montserrat(),
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -371,6 +353,118 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModernDropdown<T>({
+    required String label,
+    required IconData icon,
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+  }) {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Container(
+          // Container with styling
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: value != null ? const Color(0xFF121212) : Colors.grey.shade300,
+              width: value != null ? 2 : 1,
+            ),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dropdownMenuTheme: DropdownMenuThemeData(
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStateProperty.all(Colors.white),
+                  shape: WidgetStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  elevation: WidgetStateProperty.all(8),
+                  padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  minimumSize: WidgetStateProperty.all(const Size(0, 0)),
+                  maximumSize: WidgetStateProperty.all(
+                    Size(MediaQuery.of(context).size.width - 48, double.infinity),
+                  ),
+                ),
+              ),
+            ),
+            child: DropdownButtonFormField<T>(
+                value: value,
+                decoration: InputDecoration(
+                  labelText: label,
+                  labelStyle: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                  ),
+                  prefixIcon: Icon(
+                    icon,
+                    color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                    size: 22,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+                style: GoogleFonts.montserrat(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: value != null ? const Color(0xFF121212) : Colors.grey.shade600,
+                ),
+                dropdownColor: Colors.white,
+                items: items.map((item) {
+                  return DropdownMenuItem<T>(
+                    value: item.value,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                      child: item.child,
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+                menuMaxHeight: 300,
+                borderRadius: BorderRadius.circular(16),
+                itemHeight: 48,
+                isExpanded: true,
+                alignment: AlignmentDirectional.centerStart,
+                isDense: false,
+                selectedItemBuilder: (context) {
+                  return items.map((item) {
+                    return Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        item.value.toString(),
+                        style: GoogleFonts.montserrat(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+            ),
+        );
+      },
     );
   }
 }
