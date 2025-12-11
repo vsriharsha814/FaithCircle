@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/quiz_question.dart';
 import '../services/quiz_service.dart';
+import '../services/settings_service.dart';
 
 class QuizGameScreen extends StatefulWidget {
   final String category;
@@ -18,11 +20,58 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
   int? _selectedAnswerIndex;
   bool _hasAnswered = false;
   int _correctAnswers = 0;
+  int _timerDuration = 5;
+  int _remainingTime = 5;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _loadQuestions();
+    _loadTimerSettings();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadTimerSettings() async {
+    final duration = await SettingsService.getQuizTimerDuration();
+    if (mounted) {
+      setState(() {
+        _timerDuration = duration;
+        _remainingTime = duration;
+      });
+      _startTimer();
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() {
+      _remainingTime = _timerDuration;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        if (_remainingTime > 0) {
+          _remainingTime--;
+        } else {
+          timer.cancel();
+          // Auto-select first answer if no answer selected
+          if (!_hasAnswered && _selectedAnswerIndex == null) {
+            _selectAnswer(0);
+          }
+        }
+      });
+    });
   }
 
   void _loadQuestions() {
@@ -33,10 +82,13 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
       _hasAnswered = false;
       _correctAnswers = 0;
     });
+    _startTimer();
   }
 
   void _selectAnswer(int index) {
     if (_hasAnswered) return;
+
+    _timer?.cancel();
 
     setState(() {
       _selectedAnswerIndex = index;
@@ -61,6 +113,7 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
         _selectedAnswerIndex = null;
         _hasAnswered = false;
       });
+      _startTimer();
     } else {
       _showResults();
     }
@@ -88,24 +141,40 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(context, false),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF121212),
+              side: const BorderSide(color: Color(0xFF121212), width: 1.5),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: Text(
               'Cancel',
               style: GoogleFonts.montserrat(
                 fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
           ),
-          TextButton(
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(
               'Exit',
               style: GoogleFonts.montserrat(
                 fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Colors.white,
               ),
             ),
           ),
@@ -220,7 +289,6 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
     }
 
     final currentQuestion = _questions[_currentQuestionIndex];
-    final progress = (_currentQuestionIndex + 1) / _questions.length;
 
     return PopScope(
       canPop: false,
@@ -278,15 +346,38 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Progress Bar
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF121212)),
-                ),
+              // Timer Progress Bar
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _remainingTime / _timerDuration,
+                        minHeight: 4,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _remainingTime <= 2
+                              ? Colors.red
+                              : _remainingTime <= _timerDuration / 2
+                                  ? Colors.orange
+                                  : const Color(0xFF121212),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$_remainingTime',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _remainingTime <= 2
+                          ? Colors.red
+                          : const Color(0xFF121212),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               // Category Label

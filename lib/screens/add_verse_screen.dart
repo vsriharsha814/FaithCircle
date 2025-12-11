@@ -172,7 +172,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
 
       if (verseTexts.isNotEmpty && mounted) {
         // Format reference as "Book Chapter:FromVerse-ToVerse"
-        final reference = '${_selectedBook} ${_selectedChapter}:${_selectedFromVerse}-${_selectedToVerse}';
+        final reference = '$_selectedBook $_selectedChapter:$_selectedFromVerse-$_selectedToVerse';
         final combinedText = verseTexts.join(' ');
         
         setState(() {
@@ -381,21 +381,71 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              // Calendar-style Verse Picker
+              // Verse Selection Button (opens popup)
               if (_selectedBook != null && _selectedChapter != null && verses.isNotEmpty) ...[
-                Text(
-                  'Select Verse',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 300), // Limit height
-                  child: SingleChildScrollView(
-                    child: _buildVerseGrid(verses),
+                InkWell(
+                  onTap: () => _showVersePickerDialog(verses),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: (_selectedFromVerse != null) 
+                            ? const Color(0xFF121212) 
+                            : Colors.grey.shade300,
+                        width: (_selectedFromVerse != null) ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.format_list_numbered_outlined,
+                          color: (_selectedFromVerse != null) 
+                              ? const Color(0xFF121212) 
+                              : Colors.grey.shade600,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Verse',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: (_selectedFromVerse != null) 
+                                      ? const Color(0xFF121212) 
+                                      : Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getVerseSelectionText(),
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: (_selectedFromVerse != null) 
+                                      ? Colors.black 
+                                      : Colors.grey.shade400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: (_selectedFromVerse != null) 
+                              ? const Color(0xFF121212) 
+                              : Colors.grey.shade600,
+                          size: 16,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -584,7 +634,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
     );
   }
 
-  Widget _buildVerseGrid(List<int> verses) {
+  Widget _buildVerseGrid(List<int> verses, {bool inDialog = false, StateSetter? setDialogState}) {
     // Calculate grid layout - 7 columns like a calendar
     const int columns = 7;
     final rows = (verses.length / columns).ceil();
@@ -613,7 +663,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                 if (colIndex < rowVerses.length) {
                   final verseNum = rowVerses[colIndex];
                   return Expanded(
-                    child: _buildVerseCell(verseNum, verses),
+                    child: _buildVerseCell(verseNum, verses, inDialog: inDialog, setDialogState: setDialogState),
                   );
                 } else {
                   // Empty cell
@@ -627,7 +677,7 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
     );
   }
 
-  Widget _buildVerseCell(int verseNum, List<int> allVerses) {
+  Widget _buildVerseCell(int verseNum, List<int> allVerses, {bool inDialog = false, StateSetter? setDialogState}) {
     // Determine selection state
     final isStart = _selectedFromVerse == verseNum;
     final isEnd = _selectedToVerse == verseNum;
@@ -677,7 +727,9 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                     // Start new selection (first tap or reset)
                     _selectedFromVerse = verseNum;
                     _selectedToVerse = null;
-                    _fetchVerse(); // Fetch single verse
+                    if (!inDialog) {
+                      _fetchVerse(); // Fetch single verse only if not in dialog
+                    }
                   } else if (_selectedFromVerse != null && _selectedToVerse == null) {
                     // Complete range (second tap)
                     if (verseNum >= _selectedFromVerse!) {
@@ -687,13 +739,29 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                       _selectedToVerse = _selectedFromVerse;
                       _selectedFromVerse = verseNum;
                     }
-                    _fetchVerse(); // Fetch range
+                    if (!inDialog) {
+                      _fetchVerse(); // Fetch range only if not in dialog
+                    }
                   }
                 });
+                // Update dialog state if in dialog
+                if (inDialog && setDialogState != null) {
+                  setDialogState(() {});
+                }
               },
         child: MouseRegion(
-          onEnter: (_) => setState(() => _hoveredVerse = verseNum),
-          onExit: (_) => setState(() => _hoveredVerse = null),
+          onEnter: (_) {
+            setState(() => _hoveredVerse = verseNum);
+            if (inDialog && setDialogState != null) {
+              setDialogState(() {});
+            }
+          },
+          onExit: (_) {
+            setState(() => _hoveredVerse = null);
+            if (inDialog && setDialogState != null) {
+              setDialogState(() {});
+            }
+          },
           child: Container(
             height: 40,
             decoration: BoxDecoration(
@@ -709,6 +777,155 @@ class _AddVerseScreenState extends State<AddVerseScreen> {
                   color: textColor,
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getVerseSelectionText() {
+    if (_selectedFromVerse == null) {
+      return 'Select verse';
+    } else if (_selectedToVerse == null) {
+      return _selectedFromVerse.toString();
+    } else {
+      return '$_selectedFromVerse-$_selectedToVerse';
+    }
+  }
+
+  Future<void> _showVersePickerDialog(List<int> verses) async {
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select Verse${_selectedFromVerse != null && _selectedToVerse != null ? " Range" : ""}',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.black),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Selected verse display
+                if (_selectedFromVerse != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121212).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF121212),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getVerseSelectionText(),
+                          style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF121212),
+                          ),
+                        ),
+                      ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Instruction text
+                Text(
+                  _selectedFromVerse == null
+                      ? 'Tap a verse to select it'
+                      : _selectedToVerse == null
+                          ? 'Tap another verse to create a range, or tap the same verse to reset'
+                          : 'Tap any verse to start a new selection',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Verse Grid
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: _buildVerseGrid(verses, inDialog: true, setDialogState: setDialogState),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Action buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedFromVerse = null;
+                          _selectedToVerse = null;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Clear',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: (_selectedFromVerse == null)
+                          ? null
+                          : () {
+                              Navigator.pop(context);
+                              _fetchVerse();
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF121212),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Done',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

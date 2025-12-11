@@ -292,8 +292,8 @@ class _VerseLockerScreenState extends State<VerseLockerScreen> {
                   InkWell(
                     onTap: () => _deleteVerse(verse),
                     borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
                       child: Icon(
                         Icons.delete_outline,
                         size: 20,

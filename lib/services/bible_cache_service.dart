@@ -188,7 +188,7 @@ class CachedBibleApiService {
       
       // Handle BibleApiComService which has a special search method
       if (_apiService is BibleApiComService) {
-        final service = _apiService as BibleApiComService;
+        final service = _apiService;
         apiResults = await service.getVersesByQuery(query);
       } else {
         apiResults = await _apiService.searchVerses(query);
