@@ -44,11 +44,15 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
         _timerDuration = duration;
         _remainingTime = duration;
       });
-      _startTimer();
+      if (duration > 0) {
+        _startTimer();
+      }
     }
   }
 
   void _startTimer() {
+    if (_timerDuration <= 0) return;
+    
     _timer?.cancel();
     setState(() {
       _remainingTime = _timerDuration;
@@ -82,7 +86,9 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
       _hasAnswered = false;
       _correctAnswers = 0;
     });
-    _startTimer();
+    if (_timerDuration > 0) {
+      _startTimer();
+    }
   }
 
   void _selectAnswer(int index) {
@@ -113,7 +119,9 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
         _selectedAnswerIndex = null;
         _hasAnswered = false;
       });
-      _startTimer();
+      if (_timerDuration > 0) {
+        _startTimer();
+      }
     } else {
       _showResults();
     }
@@ -345,40 +353,42 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Timer Progress Bar
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: _remainingTime / _timerDuration,
-                        minHeight: 4,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _remainingTime <= 2
-                              ? Colors.red
-                              : _remainingTime <= _timerDuration / 2
-                                  ? Colors.orange
-                                  : const Color(0xFF121212),
+              if (_timerDuration > 0) ...[
+                const SizedBox(height: 12),
+                // Timer Progress Bar
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _remainingTime / _timerDuration,
+                          minHeight: 4,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _remainingTime <= 2
+                                ? Colors.red
+                                : _remainingTime <= _timerDuration / 2
+                                    ? Colors.orange
+                                    : const Color(0xFF121212),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '$_remainingTime',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _remainingTime <= 2
-                          ? Colors.red
-                          : const Color(0xFF121212),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$_remainingTime',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _remainingTime <= 2
+                            ? Colors.red
+                            : const Color(0xFF121212),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
               // Category Label
               Container(

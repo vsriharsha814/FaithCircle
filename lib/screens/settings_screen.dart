@@ -33,9 +33,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _quizTimerDuration = seconds;
       });
+      final message = seconds == 0
+          ? 'Timer turned off'
+          : 'Timer duration set to $seconds seconds';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Timer duration set to $seconds seconds'),
+          content: Text(message),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
         ),
@@ -93,6 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildQuizTimerSetting() {
+    final timerOptions = [0, 5, 10, 15, 30];
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -113,60 +118,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Set how long each question timer lasts (in seconds)',
+            'Choose how long each question timer lasts',
             style: GoogleFonts.montserrat(
               fontSize: 14,
               color: Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$_quizTimerDuration seconds',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF121212),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: _quizTimerDuration > 1
-                        ? () => _saveQuizTimerDuration(_quizTimerDuration - 1)
-                        : null,
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: _quizTimerDuration > 1
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: timerOptions.map((seconds) {
+              final isSelected = _quizTimerDuration == seconds;
+              final label = seconds == 0 ? 'Off' : '${seconds}s';
+              
+              return InkWell(
+                onTap: () => _saveQuizTimerDuration(seconds),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
                         ? const Color(0xFF121212)
-                        : Colors.grey,
-                  ),
-                  Container(
-                    width: 50,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$_quizTimerDuration',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF121212),
-                      ),
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF121212)
+                          : Colors.grey.shade300,
+                      width: 1.5,
                     ),
                   ),
-                  IconButton(
-                    onPressed: _quizTimerDuration < 60
-                        ? () => _saveQuizTimerDuration(_quizTimerDuration + 1)
-                        : null,
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: _quizTimerDuration < 60
-                        ? const Color(0xFF121212)
-                        : Colors.grey,
+                  child: Text(
+                    label,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF121212),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
