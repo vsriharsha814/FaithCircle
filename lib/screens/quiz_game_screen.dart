@@ -27,8 +27,10 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
   @override
   void initState() {
     super.initState();
-    _loadQuestions();
-    _loadTimerSettings();
+    // Load settings first, then load questions to avoid race condition
+    _loadTimerSettings().then((_) {
+      _loadQuestions();
+    });
   }
 
   @override
@@ -44,9 +46,11 @@ class _QuizGameScreenState extends State<QuizGameScreen> {
         _timerDuration = duration;
         _remainingTime = duration;
       });
-      if (duration > 0) {
-        _startTimer();
+      // Cancel any existing timer if timer is disabled
+      if (duration <= 0) {
+        _timer?.cancel();
       }
+      // Don't start timer here - it will be started in _loadQuestions() after settings are loaded
     }
   }
 

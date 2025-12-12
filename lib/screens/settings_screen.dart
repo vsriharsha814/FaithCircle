@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/settings_service.dart';
+import '../services/snackbar_util.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -36,13 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final message = seconds == 0
           ? 'Timer turned off'
           : 'Timer duration set to $seconds seconds';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      SnackbarUtil.showSuccess(context, message);
     }
   }
 
